@@ -15,3 +15,8 @@ provider "remote" {
     sudo     = true
   }
 }
+
+data "remote_file" "root-ssh" {
+  provider = remote.home-udm
+  path     = "/mnt/data/ssh/id_rsa"
+}
