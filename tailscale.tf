@@ -1,5 +1,5 @@
 data "vault_generic_secret" "tailscale" {
-  path = "generic/tailscale"
+  path = "generic/home-udm/tailscale"
 }
 
 resource "ssh_resource" "tailscale" {
@@ -36,7 +36,7 @@ EOF
   }
 
   file {
-    content = <<EOF
+    content     = <<EOF
 RULE_PRIORITY="5225"
 
 function getDefaultTable() {

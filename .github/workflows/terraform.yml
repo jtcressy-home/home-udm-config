@@ -1,0 +1,22 @@
+name: Terraform
+on:
+  push:
+    branches: [ main ]
+    paths:
+    - '**'
+    - '.github/workflows/terraform.yml'
+  pull_request:
+    paths:
+    - '**'
+    - '.github/workflows/terraform.yml'
+
+permissions: write-all
+
+jobs:
+  terraform:
+    uses: jtcressy-home/actions-workflows/.github/workflows/terraform.yml@main
+    with:
+      vault: https://vault.jtcressy.net
+      tailscale: true
+      action: ${{ (github.event.ref == 'refs/heads/main' && 'apply -auto-approve') || 'plan' }}
+    secrets: inherit

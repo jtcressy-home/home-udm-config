@@ -1,5 +1,5 @@
 data "vault_generic_secret" "att-bypass-tls" {
-  path = "generic/att-bypass-tls"
+  path = "generic/home-udm/att-bypass-tls"
 }
 
 resource "ssh_resource" "wpa_supplicant" {

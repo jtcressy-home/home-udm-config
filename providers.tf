@@ -1,7 +1,7 @@
 provider "vault" {}
 
 data "vault_generic_secret" "unifiudm-ssh" {
-  path = "generic/unifiudm/ssh"
+  path = "generic/home-udm/ssh"
 }
 
 provider "remote" {
