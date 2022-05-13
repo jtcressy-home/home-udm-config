@@ -12,6 +12,10 @@ terraform {
       source  = "loafoe/ssh"
       version = "1.2.0"
     }
+    unifi = {
+      source  = "paultyng/unifi"
+      version = "0.34.0"
+    }
   }
   required_version = ">=1.0"
 }
