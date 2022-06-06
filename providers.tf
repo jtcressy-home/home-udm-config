@@ -21,14 +21,13 @@ data "remote_file" "root-ssh" {
   path     = "/mnt/data/ssh/id_rsa"
 }
 
-#TODO: find out if there's any thing useful to do with the unifi provider
-# data "vault_generic_secret" "unifiudm-api" {
-#   path = "generic/home-udm/unifi"
-# }
+data "vault_generic_secret" "unifiudm-api" {
+  path = "generic/home-udm/unifi"
+}
 
-# provider "unifi" {
-#   username       = data.vault_generic_secret.unifiudm-api.data.username
-#   password       = data.vault_generic_secret.unifiudm-api.data.password
-#   api_url        = "https://192.168.20.1/proxy"
-#   allow_insecure = true
-# }
+provider "unifi" {
+  username       = data.vault_generic_secret.unifiudm-api.data.username
+  password       = data.vault_generic_secret.unifiudm-api.data.password
+  api_url        = "https://192.168.20.1/proxy"
+  allow_insecure = true
+}

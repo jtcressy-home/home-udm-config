@@ -80,5 +80,4 @@ EOF
     "${local.on_boot_dir}/11-tailscale.sh",
     "sleep 10 && podman exec tailscaled tailscale status && podman exec tailscaled tailscale up ${local.tailscale_args}",
   ]
-  depends_on = [ssh_resource.udm-boot-remote-install, ssh_resource.on-boot-scripts]
 }

@@ -71,5 +71,4 @@ EOF
   commands = [
     "${local.on_boot_dir}/00-wpa_supplicant.sh",
   ]
-  depends_on = [ssh_resource.udm-boot-remote-install]
 }
