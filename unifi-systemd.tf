@@ -8,11 +8,11 @@ resource "ssh_resource" "unifi-systemd" {
   user        = data.vault_generic_secret.unifiudm-ssh.data.username
   private_key = data.remote_file.root-ssh.content
 
-  file {
-    content     = data.http.unifi-systemd-deb.body
-    destination = "${local.persistent_storage_dir}/unifi-os/unifi-systemd_1.0.0_all.deb"
-    permissions = "0600"
-  }
+#  file {
+#    content     = data.http.unifi-systemd-deb.response_body
+#    destination = "${local.persistent_storage_dir}/unifi-os/unifi-systemd_1.0.0_all.deb"
+#    permissions = "0600"
+#  }
 
   file {
     content = <<EOF
@@ -36,6 +36,7 @@ EOF
   timeout = "15m"
 
   commands = [
+    "podman exec unifi-os curl -sLo /data/unifi-systemd_1.0.0_all.deb \"${data.http.unifi-systemd-deb.url}\"",
     "podman exec unifi-os dpkg -i /data/unifi-systemd_1.0.0_all.deb",
     "podman exec unifi-systemd systemctl enable unifi-entrypoint@mnt-data-on_boot.d.service"
   ]
