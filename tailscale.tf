@@ -4,7 +4,7 @@ data "vault_generic_secret" "tailscale" {
 
 locals {
   tailscale_args = join(" ", [
-    "--authkey=${data.vault_generic_secret.tailscale.data.authkey}",
+    "--authkey=file:${local.systemd_config_dir}/tailscale-authkey",
     "--accept-routes",
     "--advertise-exit-node",
     "--advertise-routes=${join(",", local.udm_network_cidrs)}",
@@ -12,36 +12,17 @@ locals {
   ])
 }
 
-data "template_file" "container-tailscaled-service" {
-  template = <<EOF
-[Unit]
-Description=Podman container-tailscaled@%i.service
-Documentation=man:podman-generate-systemd(1)
-Wants=network-online.target
-After=network-online.target
-RequiresMountsFor=%t/containers
-
-[Service]
-Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=on-failure
-TimeoutStopSec=70
-ExecStartPre=/bin/rm -f %t/%n.ctr-id
-ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --sdnotify=conmon --cgroups=no-conmon --rm -d --replace --name tailscaled-%i --label io.containers.autoupdate=image --cap-add NET_ADMIN --cap-add SYS_ADMIN --cap-add CAP_SYS_RAWIO --network host --volume ${local.systemd_data_dir}/tailscale/%i:/var/lib/tailscale --volume ${local.systemd_data_dir}/tailscale/%i/resolv.conf:/etc/resolv.conf --entrypoint /bin/sh ghcr.io/tailscale/tailscale:latest -c "tailscaled --tun %i"
-ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
-ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
-Type=notify
-NotifyAccess=all
-
-[Install]
-WantedBy=multi-user.target
-EOF
-}
-
 resource "ssh_resource" "tailscale" {
   host        = "192.168.20.1"
   host_user   = data.vault_generic_secret.unifiudm-ssh.data.username
   user        = data.vault_generic_secret.unifiudm-ssh.data.username
   private_key = data.remote_file.root-ssh.content
+
+  file {
+    content = data.vault_generic_secret.tailscale.data.authkey
+    destination = "${local.systemd_config_dir}/tailscale-authkey"
+    permissions = "0400"
+  }
 
   file {
     content     = <<EOF
