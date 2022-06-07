@@ -2,76 +2,49 @@ data "vault_generic_secret" "att-bypass-tls" {
   path = "generic/home-udm/att-bypass-tls"
 }
 
+data "template_file" "wpa_supplicant-unit" {
+  template = file("${path.module}/static/systemd-units/container-wpa_supplicant@.service")
+  vars = {
+    persistent_storage_dir = local.persistent_storage_dir
+    systemd_config_dir     = local.systemd_config_dir
+    systemd_data_dir       = local.systemd_data_dir
+  }
+}
+
+data "template_file" "wpa_supplicant-conf" {
+  template = file("${path.module}/static/configs/wpa_supplicant/wpa_supplicant.conf")
+  vars = {
+    identity_mac = data.vault_generic_secret.att-bypass-tls.data.identity_mac
+  }
+}
+
+resource "ssh_resource" "wpa_supplicant-pre" {
+  host        = "192.168.20.1"
+  host_user   = data.vault_generic_secret.unifiudm-ssh.data.username
+  user        = data.vault_generic_secret.unifiudm-ssh.data.username
+  private_key = data.remote_file.root-ssh.content
+
+  timeout = "15m"
+
+  commands = [
+    "mkdir -p ${local.systemd_config_dir}/wpa_supplicant/",
+  ]
+}
+
 resource "ssh_resource" "wpa_supplicant" {
   host        = "192.168.20.1"
   host_user   = data.vault_generic_secret.unifiudm-ssh.data.username
   user        = data.vault_generic_secret.unifiudm-ssh.data.username
   private_key = data.remote_file.root-ssh.content
 
-#  file {
-#    content     = <<EOF
-##!/bin/sh
-#CONTAINER=wpa_supplicant-udmpro
-#IMAGE=docker.io/pbrah/wpa_supplicant-udmpro:v1.0
-## All configs stored in /mnt/data/wpa_supplicant
-#
-#if podman container exists $${CONTAINER} && [ "$(podman inspect $${CONTAINER} | jq -r '.[].ImageName')" != "$IMAGE" ]; then
-#  (podman pull $${IMAGE} && podman stop $${CONTAINER} && podman rm -f $${CONTAINER}) || (echo "Failed to update image, continuing anyway" && true)
-#fi
-#if podman container exists $${CONTAINER}; then
-#  podman start $${CONTAINER}
-#else
-#  podman run --privileged --network=host --name=$${CONTAINER} -v ${local.persistent_storage_dir}/wpa_supplicant/:/etc/wpa_supplicant/conf/ --log-driver=k8s-file --restart always -d -ti $${IMAGE} -Dwired -ieth8 -c/etc/wpa_supplicant/conf/wpa_supplicant.conf
-#fi
-#EOF
-#    destination = "${local.on_boot_dir}/00-wpa_supplicant.sh"
-#    permissions = "0700"
-#  }
-
   file {
-    content = <<EOF
-[Unit]
-Description=Podman container-wpa_supplicant@%i.service
-Documentation=man:podman-generate-systemd(1)
-Wants=network-online.target
-After=network-online.target
-RequiresMountsFor=%t/containers
-ConditionFileNotEmpty=${local.systemd_config_dir}/wpa_supplicant/wpa_supplicant.conf
-
-[Service]
-Environment=PODMAN_SYSTEMD_UNIT=%n
-Restart=on-failure
-TimeoutStopSec=70
-ExecStartPre=/bin/rm -f %t/%n.ctr-id
-ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --sdnotify=conmon --cgroups=no-conmon --rm -d --replace --name wpa_supplicant-%i --label io.containers.autoupdate=image --cap-add NET_RAW --network host --volume ${local.systemd_config_dir}/wpa_supplicant:/etc/wpa_supplicant:ro ghcr.io/ntkme/wpa_supplicant:edge -D wired -i %i -c wpa_supplicant.conf
-ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
-ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
-Type=notify
-NotifyAccess=all
-
-[Install]
-WantedBy=multi-user.target
-EOF
+    content     = data.template_file.wpa_supplicant-unit.rendered
     destination = "${local.systemd_unit_dir}/container-wpa_supplicant@.service"
     permissions = "0600"
   }
 
   file {
-    content     = <<EOF
-eapol_version=1
-ap_scan=0
-fast_reauth=1
-network={
-        ca_cert="/etc/wpa_supplicant/conf/tls_ca.pem"
-        client_cert="/etc/wpa_supplicant/conf/tls_cert.pem"
-        eap=TLS
-        eapol_flags=0
-        identity="${data.vault_generic_secret.att-bypass-tls.data.identity_mac}" # Internet (ONT) interface MAC address must match this value
-        key_mgmt=IEEE8021X
-        phase1="allow_canned_success=1"
-        private_key="/etc/wpa_supplicant/conf/tls_key.pem"
-}
-EOF
+    content     = data.template_file.wpa_supplicant-conf.rendered
     destination = "${local.systemd_config_dir}/wpa_supplicant/wpa_supplicant.conf"
     permissions = "0400"
   }
@@ -101,5 +74,5 @@ EOF
     "podman exec unifi-systemd systemctl enable --now container-wpa_supplicant@eth8.service"
   ]
 
-  depends_on = [ssh_resource.unifi-systemd]
+  depends_on = [ssh_resource.unifi-systemd, ssh_resource.wpa_supplicant-pre]
 }
