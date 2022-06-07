@@ -38,7 +38,8 @@ EOF
   commands = [
     "podman exec unifi-os curl -sLo /data/unifi-systemd_1.0.0_all.deb \"${data.http.unifi-systemd-deb.url}\"",
     "podman exec unifi-os dpkg -i /data/unifi-systemd_1.0.0_all.deb",
-    "podman exec unifi-systemd systemctl enable unifi-entrypoint@mnt-data-on_boot.d.service",
-    "mkdir -p ${local.persistent_storage_dir}/{etc/systemd/system,var,bin}"
+    "mkdir -p ${local.persistent_storage_dir}/etc/systemd/system",
+    "mkdir -p ${local.persistent_storage_dir}/var",
+    "mkdir -p ${local.persistent_storage_dir}/bin"
   ]
 }
