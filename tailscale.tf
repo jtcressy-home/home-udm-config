@@ -60,7 +60,7 @@ After=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/bin/sh "${local.persistent_storage_dir}/bin/ip-rule-monitor.sh"
+ExecStart=/usr/bin/podman run --rm --net host --volume /mnt/data/ssh/id_rsa:/root/.ssh/id_rsa:ro --volume /var/run/ssh_proxy_port:/etc/unifi-os/ssh_proxy_port:ro ghcr.io/ntkme/unifi-ssh-proxy:edge '/bin/sh "${local.persistent_storage_dir}/bin/ip-rule-monitor.sh"'
 TimeoutStartSec=0
 Restart=always
 StartLimitInterval=0
