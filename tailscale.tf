@@ -12,6 +12,31 @@ locals {
   ])
 }
 
+data "template_file" "container-tailscaled-service" {
+  template = <<EOF
+[Unit]
+Description=Podman container-tailscaled@%i.service
+Documentation=man:podman-generate-systemd(1)
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=%t/containers
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Restart=on-failure
+TimeoutStopSec=70
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --sdnotify=conmon --cgroups=no-conmon --rm -d --replace --name tailscaled-%i --label io.containers.autoupdate=image --cap-add NET_ADMIN --cap-add SYS_ADMIN --cap-add CAP_SYS_RAWIO --network host --volume ${local.systemd_data_dir}/tailscale/%i:/var/lib/tailscale --volume ${local.systemd_data_dir}/tailscale/%i/resolv.conf:/etc/resolv.conf --entrypoint /bin/sh ghcr.io/tailscale/tailscale:latest -c "tailscaled --tun %i"
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
+Type=notify
+NotifyAccess=all
+
+[Install]
+WantedBy=multi-user.target
+EOF
+}
+
 resource "ssh_resource" "tailscale" {
   host        = "192.168.20.1"
   host_user   = data.vault_generic_secret.unifiudm-ssh.data.username
@@ -20,33 +45,55 @@ resource "ssh_resource" "tailscale" {
 
   file {
     content     = <<EOF
-#!/bin/sh
-CONTAINER=tailscaled
-IMAGE=ghcr.io/tailscale/tailscale:v1.24.2
-# Starts a Tailscale container that is deleted after it is stopped.
-# All configs stored in /mnt/data/tailscale
+[Unit]
+Description=Podman container-tailscaled@%i.service
+Documentation=man:podman-generate-systemd(1)
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=%t/containers
 
-if podman container exists $${CONTAINER} && [ "$(podman inspect $${CONTAINER} | jq -r '.[].ImageName')" != "$IMAGE" ]; then
-  (podman pull $${IMAGE} && podman stop $${CONTAINER} && podman rm -f $${CONTAINER}) || (echo "Failed to pull image" && true)
-fi
-if podman container exists $${CONTAINER}; then
-  podman start $${CONTAINER}
-else
-  podman run --rm --device=/dev/net/tun --net=host --cap-add=NET_ADMIN --cap-add=SYS_ADMIN --cap-add=CAP_SYS_RAWIO -v /mnt/data/tailscale:/var/lib/tailscale -v /mnt/data/tailscale/resolv.conf:/etc/resolv.conf --name=$${CONTAINER} -d --entrypoint /bin/sh $${IMAGE} -c "tailscaled --tun eth52"
-fi
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Restart=on-failure
+TimeoutStopSec=70
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --sdnotify=conmon --cgroups=no-conmon --rm -d --replace --name tailscaled-%i --label io.containers.autoupdate=image --cap-add NET_ADMIN --cap-add SYS_ADMIN --cap-add CAP_SYS_RAWIO --network host --volume ${local.systemd_data_dir}/tailscale/%i:/var/lib/tailscale --volume ${local.systemd_data_dir}/tailscale/%i/resolv.conf:/etc/resolv.conf --entrypoint /bin/sh ghcr.io/tailscale/tailscale:latest -c "tailscaled --tun %i"
+ExecStartPost=/usr/bin/podman exec --cidfile=%t/%n.ctr-id tailscale up ${local.tailscale_args}
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
+Type=notify
+NotifyAccess=all
 
-kill -9 $(cat ${local.persistent_storage_dir}/tailscale/monitor.pid)
-${local.persistent_storage_dir}/tailscale/ip-rule-monitor.sh &
-monitor_pid=$!
-echo $monitor_pid > ${local.persistent_storage_dir}/tailscale/monitor.pid
-
+[Install]
+WantedBy=multi-user.target
 EOF
-    destination = "${local.on_boot_dir}/11-tailscale.sh"
-    permissions = "0700"
+    destination = "${local.systemd_unit_dir}/container-tailscaled@.service"
+    permissions = "0600"
+  }
+
+  file {
+    content = <<EOF
+[Unit]
+Description=Monitors ip rules for better default route discovery by tailscale
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/bin/sh "${local.persistent_storage_dir}/bin/ip-rule-monitor.sh"
+TimeoutStartSec=0
+Restart=always
+StartLimitInterval=0
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    destination = "${local.systemd_unit_dir}/ip-rule-monitor.service"
+    permissions = "0600"
   }
 
   file {
     content     = <<EOF
+#!/bin/sh
 RULE_PRIORITY="5225"
 
 function getDefaultTable() {
@@ -70,14 +117,17 @@ tail -Fn 0  /var/log/messages | while read line; do
         fi
 done
 EOF
-    destination = "${local.persistent_storage_dir}/tailscale/ip-rule-monitor.sh"
+    destination = "${local.persistent_storage_dir}/bin/ip-rule-monitor.sh"
     permissions = "0700"
   }
 
   timeout = "15m"
 
   commands = [
-    "${local.on_boot_dir}/11-tailscale.sh",
-    "sleep 10 && podman exec tailscaled tailscale status && podman exec tailscaled tailscale up ${local.tailscale_args}",
+    "podman exec unifi-systemd systemctl daemon-reload",
+    "podman exec unifi-systemd systemctl enable --now ip-rule-monitor.service",
+    "podman exec unifi-systemd systemctl enable --now container-tailscaled@eth11.service"
   ]
+
+  depends_on = [ssh_resource.unifi-systemd]
 }

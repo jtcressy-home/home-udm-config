@@ -8,24 +8,52 @@ resource "ssh_resource" "wpa_supplicant" {
   user        = data.vault_generic_secret.unifiudm-ssh.data.username
   private_key = data.remote_file.root-ssh.content
 
-  file {
-    content     = <<EOF
-#!/bin/sh
-CONTAINER=wpa_supplicant-udmpro
-IMAGE=docker.io/pbrah/wpa_supplicant-udmpro:v1.0
-# All configs stored in /mnt/data/wpa_supplicant
+#  file {
+#    content     = <<EOF
+##!/bin/sh
+#CONTAINER=wpa_supplicant-udmpro
+#IMAGE=docker.io/pbrah/wpa_supplicant-udmpro:v1.0
+## All configs stored in /mnt/data/wpa_supplicant
+#
+#if podman container exists $${CONTAINER} && [ "$(podman inspect $${CONTAINER} | jq -r '.[].ImageName')" != "$IMAGE" ]; then
+#  (podman pull $${IMAGE} && podman stop $${CONTAINER} && podman rm -f $${CONTAINER}) || (echo "Failed to update image, continuing anyway" && true)
+#fi
+#if podman container exists $${CONTAINER}; then
+#  podman start $${CONTAINER}
+#else
+#  podman run --privileged --network=host --name=$${CONTAINER} -v ${local.persistent_storage_dir}/wpa_supplicant/:/etc/wpa_supplicant/conf/ --log-driver=k8s-file --restart always -d -ti $${IMAGE} -Dwired -ieth8 -c/etc/wpa_supplicant/conf/wpa_supplicant.conf
+#fi
+#EOF
+#    destination = "${local.on_boot_dir}/00-wpa_supplicant.sh"
+#    permissions = "0700"
+#  }
 
-if podman container exists $${CONTAINER} && [ "$(podman inspect $${CONTAINER} | jq -r '.[].ImageName')" != "$IMAGE" ]; then
-  (podman pull $${IMAGE} && podman stop $${CONTAINER} && podman rm -f $${CONTAINER}) || (echo "Failed to update image, continuing anyway" && true)
-fi
-if podman container exists $${CONTAINER}; then
-  podman start $${CONTAINER}
-else
-  podman run --privileged --network=host --name=$${CONTAINER} -v ${local.persistent_storage_dir}/wpa_supplicant/:/etc/wpa_supplicant/conf/ --log-driver=k8s-file --restart always -d -ti $${IMAGE} -Dwired -ieth8 -c/etc/wpa_supplicant/conf/wpa_supplicant.conf
-fi
+  file {
+    content = <<EOF
+[Unit]
+Description=Podman container-wpa_supplicant@%i.service
+Documentation=man:podman-generate-systemd(1)
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=%t/containers
+ConditionFileNotEmpty=${local.systemd_config_dir}/wpa_supplicant/wpa_supplicant.conf
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Restart=on-failure
+TimeoutStopSec=70
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --sdnotify=conmon --cgroups=no-conmon --rm -d --replace --name wpa_supplicant-%i --label io.containers.autoupdate=image --cap-add NET_RAW --network host --volume ${local.systemd_config_dir}/wpa_supplicant:/etc/wpa_supplicant:ro ghcr.io/ntkme/wpa_supplicant:edge -D wired -i %i -c wpa_supplicant.conf
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
+Type=notify
+NotifyAccess=all
+
+[Install]
+WantedBy=multi-user.target
 EOF
-    destination = "${local.on_boot_dir}/00-wpa_supplicant.sh"
-    permissions = "0700"
+    destination = "${local.systemd_unit_dir}/container-wpa_supplicant@.service"
+    permissions = "0600"
   }
 
   file {
@@ -44,31 +72,34 @@ network={
         private_key="/etc/wpa_supplicant/conf/tls_key.pem"
 }
 EOF
-    destination = "${local.persistent_storage_dir}/wpa_supplicant/wpa_supplicant.conf"
+    destination = "${local.systemd_config_dir}/wpa_supplicant/wpa_supplicant.conf"
     permissions = "0400"
   }
 
   file {
     content     = data.vault_generic_secret.att-bypass-tls.data.tls_ca
-    destination = "${local.persistent_storage_dir}/wpa_supplicant/tls_ca.pem"
+    destination = "${local.systemd_config_dir}/wpa_supplicant/tls_ca.pem"
     permissions = "0400"
   }
 
   file {
     content     = data.vault_generic_secret.att-bypass-tls.data.tls_cert
-    destination = "${local.persistent_storage_dir}/wpa_supplicant/tls_cert.pem"
+    destination = "${local.systemd_config_dir}/wpa_supplicant/tls_cert.pem"
     permissions = "0400"
   }
 
   file {
     content     = data.vault_generic_secret.att-bypass-tls.data.tls_key
-    destination = "${local.persistent_storage_dir}/wpa_supplicant/tls_key.pem"
+    destination = "${local.systemd_config_dir}/wpa_supplicant/tls_key.pem"
     permissions = "0400"
   }
 
   timeout = "15m"
 
   commands = [
-    "${local.on_boot_dir}/00-wpa_supplicant.sh",
+    "podman exec unifi-systemd systemctl daemon-reload",
+    "podman exec unifi-systemd systemctl enable --now container-wpa_supplicant@eth8.service"
   ]
+
+  depends_on = [ssh_resource.unifi-systemd]
 }
