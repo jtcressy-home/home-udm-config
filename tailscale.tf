@@ -4,7 +4,7 @@ data "vault_generic_secret" "tailscale" {
 
 locals {
   tailscale_args = join(" ", [
-    "--authkey=$(cat ${local.systemd_data_dir}/tailscale-authkey)",
+    "--authkey=file:/tailscale-authkey",
     "--accept-routes",
     "--advertise-exit-node",
     "--advertise-routes=${join(",", local.udm_network_cidrs)}",
