@@ -11,7 +11,7 @@ Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/sh -c 'mkdir -p ${systemd_data_dir}/tailscale/%i; touch ${systemd_data_dir}/tailscale/%i/resolv.conf; /bin/rm -f %t/%n.ctr-id'
 ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --sdnotify=conmon --cgroups=no-conmon --rm -d --replace --name tailscaled-%i --label io.containers.autoupdate=image --cap-add NET_ADMIN --cap-add SYS_ADMIN --cap-add CAP_SYS_RAWIO --network host --volume ${systemd_data_dir}/tailscale/%i:/var/lib/tailscale --volume ${systemd_data_dir}/tailscale/%i/resolv.conf:/etc/resolv.conf --volume /lib/modules:/lib/modules:ro --device /dev/net/tun --entrypoint /bin/sh ghcr.io/tailscale/tailscale:latest -c "tailscaled --tun %i"
-ExecStartPost=/usr/bin/podman exec --cidfile=%t/%n.ctr-id tailscale up ${tailscale_args}
+ExecStartPost=/usr/bin/podman exec tailscaled-%i tailscale up ${tailscale_args}
 ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 Type=notify
