@@ -4,7 +4,7 @@ data "vault_generic_secret" "tailscale" {
 
 locals {
   tailscale_args = join(" ", [
-    "--authkey=file:${local.systemd_data_dir}/tailscale-authkey",
+    "--authkey=file:/var/lib/tailscale/tailscale-authkey",
     "--accept-routes",
     "--advertise-exit-node",
     "--advertise-routes=${join(",", local.udm_network_cidrs)}",
@@ -30,7 +30,7 @@ resource "ssh_resource" "tailscale" {
 
   file {
     content     = data.vault_generic_secret.tailscale.data.authkey
-    destination = "${local.systemd_data_dir}/tailscale-authkey"
+    destination = "${local.systemd_data_dir}/tailscale/eth11/tailscale-authkey"
     permissions = "0400"
   }
 
