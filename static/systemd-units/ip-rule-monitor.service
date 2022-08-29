@@ -1,12 +1,19 @@
 [Unit]
 Description=Monitors ip rules for better default route discovery by tailscale
 After=network-online.target
+RequiresMountsFor=%t/containers
 
 [Service]
-Type=simple
-ExecStart=/usr/bin/podman run --rm --net host --volume /mnt/data/ssh/id_rsa:/root/.ssh/id_rsa:ro --volume /var/run/ssh_proxy_port:/etc/unifi-os/ssh_proxy_port:ro ghcr.io/ntkme/unifi-ssh-proxy:edge '/bin/sh "/mnt/data/bin/ip-rule-monitor.sh"'
-TimeoutStartSec=0
-Restart=always
+Type=notify
+NotifyAccess=all
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Restart=on-failure
+TimeoutStopSec=70
+ExecStartPre=/bin/rm -f %t/%n.ctr-id
+ExecStart=/usr/bin/podman run  --cidfile=%t/%n.ctr-id --sdnotify=conmon --cgroups=no-conmon --rm -d --replace --name ip-rule-monitor --net host --entrypoint /bin/sh ghcr.io/tailscale/tailscale:latest -c '/bin/sh "/mnt/data/bin/ip-rule-monitor.sh"'
+ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
+
 
 [Install]
 WantedBy=multi-user.target
