@@ -10,7 +10,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/%n.ctr-id
-ExecStart=/usr/bin/podman run  --cidfile=%t/%n.ctr-id --sdnotify=conmon --cgroups=no-conmon --rm -d --replace --name ip-rule-monitor --net host --entrypoint /bin/sh ghcr.io/tailscale/tailscale:latest -c '/bin/sh "/mnt/data/bin/ip-rule-monitor.sh"'
+ExecStart=/usr/bin/podman run  --cidfile=%t/%n.ctr-id --sdnotify=conmon --cgroups=no-conmon --rm -d --replace --name ip-rule-monitor --net host --volume /mnt/data/bin:/mnt/data/bin --entrypoint /bin/sh ghcr.io/tailscale/tailscale:latest -c '/bin/sh "/mnt/data/bin/ip-rule-monitor.sh"'
 ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
 
