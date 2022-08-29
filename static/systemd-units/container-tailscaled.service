@@ -1,5 +1,5 @@
 [Unit]
-Description=Podman container-tailscaled@%i.service
+Description=Podman container-tailscaled.service
 Documentation=man:podman-generate-systemd(1)
 Wants=network-online.target,ip-rule-monitor.service
 After=network-online.target

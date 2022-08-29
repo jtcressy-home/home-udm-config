@@ -13,7 +13,7 @@ locals {
 }
 
 data "template_file" "tailscale-unit" {
-  template = file("${path.module}/static/systemd-units/container-tailscaled@.service")
+  template = file("${path.module}/static/systemd-units/container-tailscaled.service")
   vars = {
     persistent_storage_dir = local.persistent_storage_dir
     systemd_config_dir     = local.systemd_config_dir
@@ -36,7 +36,7 @@ resource "ssh_resource" "tailscale" {
 
   file {
     content     = data.template_file.tailscale-unit.rendered
-    destination = "${local.systemd_unit_dir}/container-tailscaled@.service"
+    destination = "${local.systemd_unit_dir}/container-tailscaled.service"
     permissions = "0600"
   }
 
@@ -57,7 +57,7 @@ resource "ssh_resource" "tailscale" {
   commands = [
     "podman exec unifi-systemd systemctl daemon-reload",
     "podman exec unifi-systemd systemctl enable --now ip-rule-monitor.service",
-    "podman exec unifi-systemd systemctl enable --now container-tailscaled@eth11.service",
+    "podman exec unifi-systemd systemctl enable --now container-tailscaled.service",
   ]
 
   depends_on = [ssh_resource.unifi-systemd]
