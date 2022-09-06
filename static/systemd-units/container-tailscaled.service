@@ -10,7 +10,7 @@ Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=on-failure
 TimeoutStopSec=70
 ExecStartPre=/bin/sh -c 'mkdir -p ${systemd_data_dir}/tailscale; touch ${systemd_data_dir}/tailscale/resolv.conf; /bin/rm -f %t/%n.ctr-id'
-ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --sdnotify=conmon --cgroups=no-conmon --rm -d --replace --name tailscaled --label io.containers.autoupdate=image --cap-add NET_ADMIN --cap-add SYS_ADMIN --cap-add CAP_SYS_RAWIO --network host --volume ${systemd_data_dir}/tailscale-authkey:/tailscale-authkey --volume ${systemd_data_dir}/tailscale:/var/lib/tailscale --volume ${systemd_data_dir}/tailscale/resolv.conf:/etc/resolv.conf --volume /lib/modules:/lib/modules:ro --device /dev/net/tun --entrypoint /bin/sh ghcr.io/tailscale/tailscale:latest -c "tailscaled --tun=eth11"
+ExecStart=/usr/bin/podman run --cidfile=%t/%n.ctr-id --sdnotify=conmon --cgroups=no-conmon --rm -d --replace --name tailscaled --label io.containers.autoupdate=image --cap-add NET_RAW --cap-add NET_ADMIN --cap-add SYS_ADMIN --cap-add CAP_SYS_RAWIO --network host --volume ${systemd_data_dir}/tailscale-authkey:/tailscale-authkey --volume ${systemd_data_dir}/tailscale:/var/lib/tailscale --volume ${systemd_data_dir}/tailscale/resolv.conf:/etc/resolv.conf --volume /lib/modules:/lib/modules:ro --device /dev/net/tun --entrypoint /bin/sh ghcr.io/tailscale/tailscale:latest -c "tailscaled --tun=eth11"
 ExecStartPost=/usr/bin/podman exec tailscaled tailscale up ${tailscale_args}
 ExecStop=/usr/bin/podman stop --ignore --cidfile=%t/%n.ctr-id
 ExecStopPost=/usr/bin/podman rm -f --ignore --cidfile=%t/%n.ctr-id
