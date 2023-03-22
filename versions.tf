@@ -10,7 +10,7 @@ terraform {
     }
     ssh = {
       source  = "loafoe/ssh"
-      version = "1.2.0"
+      version = "2.6.0"
     }
     unifi = {
       source  = "paultyng/unifi"
