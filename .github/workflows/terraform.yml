@@ -17,6 +17,6 @@ jobs:
     uses: jtcressy-home/actions-workflows/.github/workflows/terraform.yml@main
     with:
       vault: https://vault.jtcressy.net
-      tailscale: false
+      tailscale: true
       action: ${{ (github.event.ref == 'refs/heads/main' && 'apply -auto-approve') || 'plan' }}
     secrets: inherit
