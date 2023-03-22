@@ -16,11 +16,6 @@ provider "remote" {
   }
 }
 
-data "remote_file" "root-ssh" {
-  provider = remote.home-udm
-  path     = "/mnt/data/ssh/id_rsa"
-}
-
 data "vault_generic_secret" "unifiudm-api" {
   path = "generic/home-udm/unifi"
 }
