@@ -1,4 +1,4 @@
-data "http" "unifi-tailscale-ip-rule-monitor-deb" {
+data "http-bin" "unifi-tailscale-ip-rule-monitor-deb" {
   url = "https://github.com/jtcressy-home/unifi-tailscale-ip-rule-monitor/releases/download/0.1.2/unifi-tailscale-ip-rule-monitor_0.1.2_all.deb"
 }
 
@@ -11,7 +11,7 @@ resource "ssh_resource" "apt_packages" {
   timeout = "15m"
 
   file {
-    content     = data.http.unifi-tailscale-ip-rule-monitor-deb.response_body
+    content     = base64decode(data.http-bin.unifi-tailscale-ip-rule-monitor-deb.response_body)
     destination = "${local.persistent_storage_dir}/unifi-tailscale-ip-rule-monitor_0.1.2_all.deb"
     permissions = "0644"
   }

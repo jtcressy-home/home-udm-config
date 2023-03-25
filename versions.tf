@@ -16,6 +16,10 @@ terraform {
       source  = "paultyng/unifi"
       version = "0.34.0"
     }
+    http-bin = {
+      source = "ndemeshchenko/http-bin"
+      version = "1.0.1"
+    }
   }
   required_version = ">=1.0"
 }
