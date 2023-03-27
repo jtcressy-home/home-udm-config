@@ -25,8 +25,11 @@ resource "ssh_resource" "apt_packages" {
     # apt repo for docker
     "curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -",
     "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable\" | tee /etc/apt/sources.list.d/docker.list",
+    # apt repo for gcp artifact registry
+    "curl https://us-apt.pkg.dev/doc/repo-signing-key.gpg | apt-key add -",
+    "echo \"deb https://us-apt.pkg.dev/projects/jtcressy-net-235001 unifi-os main\" | tee /etc/apt/sources.list.d/artifact-registry.list",
     "apt update -y",
     "apt install -yqq tailscale docker-ce docker-ce-cli",
-    "dpkg -i ${local.persistent_storage_dir}/unifi-tailscale-ip-rule-monitor_0.1.2_all.deb"
+#    "dpkg -i ${local.persistent_storage_dir}/unifi-tailscale-ip-rule-monitor_0.1.2_all.deb"
   ]
 }
