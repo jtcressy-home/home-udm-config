@@ -1,6 +1,6 @@
-data "http-bin" "unifi-tailscale-ip-rule-monitor-deb" {
-  url = "https://github.com/jtcressy-home/unifi-tailscale-ip-rule-monitor/releases/download/0.1.2/unifi-tailscale-ip-rule-monitor_0.1.2_all.deb"
-}
+#data "http-bin" "unifi-tailscale-ip-rule-monitor-deb" {
+#  url = "https://github.com/jtcressy-home/unifi-tailscale-ip-rule-monitor/releases/download/0.1.2/unifi-tailscale-ip-rule-monitor_0.1.2_all.deb"
+#}
 
 resource "ssh_resource" "apt_packages" {
   host      = "192.168.20.1"
@@ -10,11 +10,11 @@ resource "ssh_resource" "apt_packages" {
 
   timeout = "15m"
 
-  file {
-    content     = base64decode(data.http-bin.unifi-tailscale-ip-rule-monitor-deb.response_body)
-    destination = "${local.persistent_storage_dir}/unifi-tailscale-ip-rule-monitor_0.1.2_all.deb"
-    permissions = "0644"
-  }
+  #  file {
+  #    content     = base64decode(data.http-bin.unifi-tailscale-ip-rule-monitor-deb.response_body)
+  #    destination = "${local.persistent_storage_dir}/unifi-tailscale-ip-rule-monitor_0.1.2_all.deb"
+  #    permissions = "0644"
+  #  }
 
   commands = [
     "apt update -y",
@@ -30,6 +30,6 @@ resource "ssh_resource" "apt_packages" {
     "echo \"deb https://us-apt.pkg.dev/projects/jtcressy-net-235001 unifi-os main\" | tee /etc/apt/sources.list.d/artifact-registry.list",
     "apt update -y",
     "apt install -yqq tailscale docker-ce docker-ce-cli",
-#    "dpkg -i ${local.persistent_storage_dir}/unifi-tailscale-ip-rule-monitor_0.1.2_all.deb"
+    #    "dpkg -i ${local.persistent_storage_dir}/unifi-tailscale-ip-rule-monitor_0.1.2_all.deb"
   ]
 }
