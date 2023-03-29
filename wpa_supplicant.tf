@@ -10,13 +10,12 @@ data "template_file" "wpa_supplicant-conf" {
 }
 
 resource "ssh_resource" "wpa_supplicant" {
-  host      = "192.168.20.1"
-  host_user = data.vault_generic_secret.unifiudm-ssh.data.username
-  user      = data.vault_generic_secret.unifiudm-ssh.data.username
-  password  = data.vault_generic_secret.unifiudm-ssh.data.password
+  host     = "192.168.20.1"
+  user     = data.vault_generic_secret.unifiudm-ssh.data.username
+  password = data.vault_generic_secret.unifiudm-ssh.data.password
 
   file {
-    content = <<EOF
+    content     = <<EOF
 [Service]
 ExecStart=
 ExecStart=/sbin/wpa_supplicant -u -s -Dwired -ieth8 -c/etc/wpa_supplicant/conf/wpa_supplicant.conf
@@ -53,7 +52,9 @@ EOF
   timeout = "15m"
 
   commands = [
-    "systemctl enable --now wpa_supplicant.service"
+    "systemctl daemon-reload",
+    "systemctl enable --now wpa_supplicant.service",
+    "systemctl restart wpa_supplicant.service",
   ]
 
   depends_on = [ssh_resource.apt_packages]

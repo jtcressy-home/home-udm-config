@@ -13,7 +13,6 @@ locals {
 
 resource "ssh_resource" "tailscale" {
   host        = "192.168.20.1"
-  host_user   = data.vault_generic_secret.unifiudm-ssh.data.username
   user        = data.vault_generic_secret.unifiudm-ssh.data.username
   password    = data.vault_generic_secret.unifiudm-ssh.data.password
 
@@ -23,6 +22,7 @@ resource "ssh_resource" "tailscale" {
     "systemctl daemon-reload",
     "systemctl enable --now tailscale-ip-rule-monitor.service",
     "systemctl enable --now tailscaled.service",
+    "tailscale set ${local.tailscale_args}",
   ]
 
   depends_on = [ssh_resource.apt_packages]
