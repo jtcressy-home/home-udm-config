@@ -14,7 +14,7 @@ terraform {
     }
     unifi = {
       source  = "paultyng/unifi"
-      version = "0.34.0"
+      version = "0.41.0"
     }
     http-bin = {
       source = "ndemeshchenko/http-bin"
