@@ -12,9 +12,9 @@ locals {
 }
 
 resource "ssh_resource" "tailscale" {
-  host        = "192.168.20.1"
-  user        = data.vault_generic_secret.unifiudm-ssh.data.username
-  password    = data.vault_generic_secret.unifiudm-ssh.data.password
+  host     = "192.168.20.1"
+  user     = data.vault_generic_secret.unifiudm-ssh.data.username
+  password = data.vault_generic_secret.unifiudm-ssh.data.password
 
   timeout = "15m"
 

@@ -17,7 +17,7 @@ terraform {
       version = "0.41.0"
     }
     http-bin = {
-      source = "ndemeshchenko/http-bin"
+      source  = "ndemeshchenko/http-bin"
       version = "1.0.1"
     }
   }
