@@ -3,10 +3,9 @@
 #}
 
 resource "ssh_resource" "apt_packages" {
-  host      = "192.168.20.1"
-  host_user = data.vault_generic_secret.unifiudm-ssh.data.username
-  user      = data.vault_generic_secret.unifiudm-ssh.data.username
-  password  = data.vault_generic_secret.unifiudm-ssh.data.password
+  host     = "192.168.20.1"
+  user     = data.vault_generic_secret.unifiudm-ssh.data.username
+  password = data.vault_generic_secret.unifiudm-ssh.data.password
 
   timeout = "15m"
 
