@@ -2,7 +2,7 @@ terraform {
   required_providers {
     vault = {
       source  = "hashicorp/vault"
-      version = "3.16.0"
+      version = "5.11.0"
     }
     remote = {
       source  = "tenstad/remote"
